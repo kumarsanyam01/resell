@@ -154,7 +154,7 @@ export default function Home() {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="email" className="block mb-2">Email</label>
+            <label htmlFor="email" className="block mb-2">Email of seller</label>
             <input value={productForm?.email || ""} name='email' onChange={handleChange} type="email" id="email" className="w-full border border-gray-300 px-4 py-2 rounded-md" />
           </div>
 
