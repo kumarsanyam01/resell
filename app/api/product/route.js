@@ -1,29 +1,5 @@
-import { MongoClient } from "mongodb";
-import { NextResponse } from "next/server";
-
-const uri = "mongodb+srv://kumarsanyam2003:vu8hN98MzzfaXn2Z@cluster0.gvacucv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-let client;
-let clientPromise;
-
-if (process.env.NODE_ENV === "development") {
-  // In development mode, use a global variable so that the client is not
-  // repeatedly created on hot reloading
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production mode, use a local variable
-  client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
-  clientPromise = client.connect();
-}
+import clientPromise from '@/lib/mongodb';
+import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
