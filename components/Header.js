@@ -24,7 +24,7 @@ const Header = () => {
             >
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
             </svg>
-            <span className="ml-3 heading-text">Stock Management System</span>
+            <span className="ml-3 heading-text">Resell</span>
           </div>
 
           {/* Toggler for small screens */}
@@ -68,7 +68,7 @@ const Header = () => {
               href="#display"
               className="block py-2 px-4 border border-transparent text-base font-medium rounded-md text-white bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Display Stock
+              Available products
             </a>
           </nav>
         </div>
