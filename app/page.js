@@ -135,7 +135,7 @@ export default function Home() {
       </div>
 
       <div id="add" className="container mx-auto my-24 px-24">
-        <h1 className="heading text-3xl font-semibold mb-6">Add a Product</h1>
+        <h1 className="heading text-3xl font-semibold mb-6">Add a Product to Sell</h1>
 
         <form>
           <div className="mb-4">
