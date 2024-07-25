@@ -1,113 +1,235 @@
-import Image from "next/image";
+"use client"
+import Header from '@/components/Header'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
+  const [productForm, setProductForm] = useState({})
+  const [products, setProducts] = useState([])
+  const [alert, setAlert] = useState("")
+  const [query, setQuery] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [loadingaction, setLoadingaction] = useState(false)
+  const [dropdown, setDropdown] = useState([])
+
+  useEffect(() => {
+    // Fetch products on load 
+    const fetchProducts = async () => {
+      const response = await fetch('/api/product')
+      let rjson = await response.json()
+      setProducts(rjson.products)
+    }
+    fetchProducts()
+  }, [])
+
+  const buttonAction = async (action, slug, initialQuantity) => {
+    // Immediately change the quantity of the product with given slug in Products
+    let index = products.findIndex((item) => item.slug == slug)
+    let newProducts = JSON.parse(JSON.stringify(products))
+    if (action == "plus") {
+      newProducts[index].quantity = parseInt(initialQuantity) + 1
+    } else {
+      newProducts[index].quantity = parseInt(initialQuantity) - 1
+    }
+    setProducts(newProducts)
+
+    // Immediately change the quantity of the product with given slug in Dropdown
+    let indexdrop = dropdown.findIndex((item) => item.slug == slug)
+    let newDropdown = JSON.parse(JSON.stringify(dropdown))
+    if (action == "plus") {
+      newDropdown[indexdrop].quantity = parseInt(initialQuantity) + 1
+    } else {
+      newDropdown[indexdrop].quantity = parseInt(initialQuantity) - 1
+    }
+    setDropdown(newDropdown)
+
+    setLoadingaction(true)
+    const response = await fetch('/api/action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action, slug, initialQuantity })
+    });
+    let r = await response.json()
+    setLoadingaction(false)
+
+    if (newProducts[index]?.quantity === 0) {
+      await fetch(`/api/product`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ slug })
+      });
+
+      // Remove the product from the state after deletion
+      setProducts(newProducts.filter(product => product.slug !== slug));
+      setDropdown(newDropdown.filter(product => product.slug !== slug));
+    }
+  }
+
+  const addProduct = async (e) => {
+    try {
+      const response = await fetch('/api/product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(productForm)
+      });
+
+      if (response.ok) {
+        // Product added successfully
+        setAlert("Your Product has been added!")
+        setProductForm({})
+      } else {
+        // Handle error case
+        console.error('Error adding product');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    // Fetch all the products again to sync back
+    const response = await fetch('/api/product')
+    let rjson = await response.json()
+    setProducts(rjson.products)
+    e.preventDefault();
+  }
+
+  const handleChange = (e) => {
+    setProductForm({ ...productForm, [e.target.name]: e.target.value })
+  }
+
+  const onDropdownEdit = async (e) => {
+    let value = e.target.value;
+    console.log('Input value:', value); // Log the input value
+  
+    setQuery(value);
+    if (value.length > 0) {
+      setLoading(true);
+      setDropdown([]);
+      console.log('Searching for:', value); // Log the search query
+      const response = await fetch('/api/search?query=' + value);
+      let rjson = await response.json();
+      console.log('Search results:', rjson); // Log the search results
+      setDropdown(rjson.products.filter(product => product.quantity > 0));
+      setLoading(false);
+    } else {
+      setDropdown([]);
+    }
+  }
+  
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <>
+      <Header />
+      
+      <div id="search" className="container mx-auto my-24 px-24">
+        <div className='text-green-800'>{alert}</div>
+        <h1 className="heading text-3xl font-semibold mb-6">Search a Product</h1>
+        <div className="flex mb-2">
+          <input onChange={onDropdownEdit} type="text" placeholder="Enter a product name" className="flex-1 border border-gray-300 px-4 py-2 rounded-l-md rounded-r-md" />
+        </div>
+        {loading && <div className='flex justify-center items-center'> <img width={74} src="/loading.svg" alt="" /> </div>}
+        <div className="dropcontainer absolute w-[72vw] border-1 bg-indigo-100 rounded-md ">
+          {dropdown.map(item => {
+            return (
+              <div key={item.slug} className="container flex justify-between p-2 my-1 border-b-2 rounded-md">
+                <span className="slug"> {item.slug} ({item.quantity} available ₹{item.price} each)</span>
+                <div className='mx-5'>
+                  <button onClick={() => { buttonAction("minus", item.slug, item.quantity) }} disabled={loadingaction} className="subtract inline-block px-3 py-1 cursor-pointer bg-indigo-500 text-white font-semibold rounded-lg shadow-md disabled:bg-indigo-200"> - </button>
+                  <span className="quantity inline-block min-w-3 mx-3">{item.quantity}</span>
+                  <button onClick={() => { buttonAction("plus", item.slug, item.quantity) }} disabled={loadingaction} className="add inline-block px-3 py-1 cursor-pointer bg-indigo-500 text-white font-semibold rounded-lg shadow-md disabled:bg-indigo-200">  + </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div id="add" className="container mx-auto my-24 px-24">
+        <h1 className="heading text-3xl font-semibold mb-6">Add a Product</h1>
+
+        <form>
+          <div className="mb-4">
+            <label htmlFor="productName" className="block mb-2">Product Slug</label>
+            <input value={productForm?.slug || ""} name='slug' onChange={handleChange} type="text" id="productName" className="w-full border border-gray-300 px-4 py-2 rounded-md" />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="quantity" className="block mb-2">Quantity</label>
+            <input value={productForm?.quantity || ""} name='quantity' onChange={handleChange} type="number" id="quantity" className="w-full border border-gray-300 px-4 py-2 rounded-md" />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="price" className="block mb-2">Price</label>
+            <input value={productForm?.price || ""} name='price' onChange={handleChange} type="number" id="price" className="w-full border border-gray-300 px-4 py-2 rounded-md" />
+          </div>
+
+          <button onClick={addProduct} type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md font-semibold">
+            Add Product
+          </button>
+        </form>
+      </div>
+      
+      <div id="display" className="container my-24 mx-auto px-24">
+        <h1 className="heading text-3xl font-semibold mb-6 text-center">Display Current Stock</h1>
+
+        <table className="table-auto w-full">
+          <thead>
+            <tr>
+              <th className="px-4 py-2">Product Name</th>
+              <th className="px-4 py-2">Quantity</th>
+              <th className="px-4 py-2">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map(product => {
+              return (
+                <tr key={product.slug} className="rounded-md">
+                  <td className="border px-4 py-2 rounded-md">{product.slug}</td>
+                  <td className="border px-4 py-2 rounded-md">{product.quantity}</td>
+                  <td className="border px-4 py-2 rounded-md">₹{product.price}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+      <style jsx>{`
+        .heading {
+          font-size: 1.875rem; /* default to text-3xl */
+        }
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+        @media (max-width: 575px) and (min-width: 280px) {
+          .container {
+            padding: 1rem;
+          }
+          .dropcontainer {
+            width: 100%;
+          }
+          input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+          }
+          table {
+            width: 100%;
+          }
+          th, td {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+          }
+          button {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 1rem;
+          }
+          .heading {
+            font-size: 1.5rem; /* smaller heading size for small screens */
+          }
+        }
+      `}</style>
+    </>
+  )
 }
