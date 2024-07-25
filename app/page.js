@@ -154,7 +154,7 @@ export default function Home() {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="email" className="block mb-2">Email of seller</label>
+            <label htmlFor="email" className="block mb-2">email ID</label>
             <input value={productForm?.email || ""} name='email' onChange={handleChange} type="email" id="email" className="w-full border border-gray-300 px-4 py-2 rounded-md" />
           </div>
 
@@ -173,7 +173,7 @@ export default function Home() {
               <th className="px-4 py-2">Product Name</th>
               <th className="px-4 py-2">Quantity</th>
               <th className="px-4 py-2">Price</th>
-              <th className="px-4 py-2">Email</th>
+              <th className="px-4 py-2">email ID of seller</th>
             </tr>
           </thead>
           <tbody>
